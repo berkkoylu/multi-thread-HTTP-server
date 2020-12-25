@@ -129,6 +129,7 @@ public class GETHandler implements Runnable{
     private File createFile(int size) throws IOException {
         File file = new File(Integer.toString(size) + ".html");
         file.createNewFile();
+
         RandomAccessFile raf = new RandomAccessFile(file,"rw");
         raf.setLength(size);
         raf.close();
@@ -136,10 +137,16 @@ public class GETHandler implements Runnable{
         PrintWriter printWriter = new PrintWriter(fileWriter);
         printWriter.println("<html>");
         printWriter.println("<head>");
-        printWriter.println("<title> I am " + size + " bytes long</title>");
+        printWriter.println("<title>I am " + size + " bytes long</title>");
         printWriter.println("</head>");
-        printWriter.println("<body> aaaaaaaaaaa </body>");
+        printWriter.println("<body>");
+        for (int i = 0; i < size - 80; i++) {
+            printWriter.print("a");
+        }
+        printWriter.println("</body>");
         printWriter.println("</html>");
+
+
         printWriter.close();
         return file;
     }
