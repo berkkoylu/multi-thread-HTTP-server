@@ -19,8 +19,9 @@ public class GETHandler implements Runnable{
     Socket socket;
 
     public GETHandler(Socket socket) throws IOException {
-        String url = InetAddress.getLocalHost().getHostAddress();
-        this.socket = new Socket(url,8888);
+//        String url = InetAddress.getLocalHost().getHostAddress();
+//        this.socket = new Socket(url,8888);
+        this.socket = socket;
         this.inputStreamReader = new InputStreamReader(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
         this.printWriter = new PrintWriter(socket.getOutputStream());
@@ -40,14 +41,21 @@ public class GETHandler implements Runnable{
         try{
             BufferedReader buffered_reader = new BufferedReader(inputStreamReader);
 
-            String[] parameters = buffered_reader.readLine().split("\\s+");
+
+            String request = buffered_reader.readLine();
+            System.out.println(request);
+            String[] parameters = request.split("\\s+");
             int l = parameters[1].length();
-            System.out.println(buffered_reader.readLine());
+            //System.out.println(buffered_reader.readLine());
+            System.out.println("test0");
             if(!("GET".equals(parameters[0]))){
+                System.out.println("test1");
                 not_implemented();
             }else if(!(parameters[1].substring(1, l - 1).matches("[0-9]+"))){
+                System.out.println("test2");
                 bad_request();
             }else{
+                System.out.println("test3");
                 int size = Integer.parseInt(parameters[1].substring(1, l));
                 File file = createFile(size);
                 ok(file, size);
@@ -82,6 +90,7 @@ public class GETHandler implements Runnable{
     }
 
     private void ok(File file, int size) throws  IOException{
+        try{
         OutputStream clientOutput = socket.getOutputStream();
         String file_path = size + ".html";
         Path filePath = Paths.get(file_path);
@@ -97,6 +106,9 @@ public class GETHandler implements Runnable{
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(Files.readAllBytes(filePath));
         clientOutput.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         //socket.close();
     }
 
