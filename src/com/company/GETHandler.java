@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 
 public class GETHandler implements Runnable{
@@ -18,7 +19,8 @@ public class GETHandler implements Runnable{
     Socket socket;
 
     public GETHandler(Socket socket) throws IOException {
-        this.socket = socket;
+        String url = InetAddress.getLocalHost().getHostAddress();
+        this.socket = new Socket(url,8888);
         this.inputStreamReader = new InputStreamReader(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
         this.printWriter = new PrintWriter(socket.getOutputStream());
@@ -40,6 +42,7 @@ public class GETHandler implements Runnable{
 
             String[] parameters = buffered_reader.readLine().split("\\s+");
             int l = parameters[1].length();
+            System.out.println(buffered_reader.readLine());
             if(!("GET".equals(parameters[0]))){
                 not_implemented();
             }else if(!(parameters[1].substring(1, l - 1).matches("[0-9]+"))){
@@ -49,7 +52,9 @@ public class GETHandler implements Runnable{
                 File file = createFile(size);
                 ok(file, size);
             }
+            System.out.println("inside web server");
             System.out.println(Thread.currentThread().getId());
+            System.out.println("----------");
         }finally {
         }
     }
@@ -60,9 +65,9 @@ public class GETHandler implements Runnable{
         String content_type = "Content-Type: text/html; charset=UTF-8\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
         String header = status + server + content_type + content_length;
-        dataOutputStream.writeBytes(header);
-        dataOutputStream.flush();
-        dataOutputStream.close();
+//        dataOutputStream.writeBytes(header);
+//        dataOutputStream.flush();
+//        dataOutputStream.close();
     }
 
     private void bad_request() throws  IOException {
@@ -71,9 +76,9 @@ public class GETHandler implements Runnable{
         String content_type = "Content-Type: text/html\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
         String header = status + server + content_type + content_length;
-        dataOutputStream.writeBytes(header);
-        dataOutputStream.flush();
-        dataOutputStream.close();
+//        dataOutputStream.writeBytes(header);
+//        dataOutputStream.flush();
+//        dataOutputStream.close();
     }
 
     private void ok(File file, int size) throws  IOException{
@@ -92,7 +97,7 @@ public class GETHandler implements Runnable{
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(Files.readAllBytes(filePath));
         clientOutput.flush();
-        socket.close();
+        //socket.close();
     }
 
     private File createFile(int size) throws IOException {

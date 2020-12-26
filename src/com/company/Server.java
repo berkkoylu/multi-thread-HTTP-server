@@ -10,7 +10,8 @@ public class Server {
         if(args.length != 1){
             System.out.println("Usage: Server.Class {port-number}");
         }
-        HttpServer server = new HttpServer();
+        System.out.println(args[0]);
+        HttpServer server = new HttpServer(Integer.parseInt(args[0]));
         server.startServer();
 
     }
