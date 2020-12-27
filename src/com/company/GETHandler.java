@@ -106,9 +106,9 @@ public class GETHandler implements Runnable{
         clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(Files.readAllBytes(filePath));
-        clientOutput.write("null".getBytes(StandardCharsets.UTF_8));
         clientOutput.flush();
         //clientOutput.close();
+        socket.shutdownOutput();
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
