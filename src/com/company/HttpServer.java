@@ -37,9 +37,9 @@ public class HttpServer{
         while(true){
             Socket connection = serverSocket.accept();
             GETHandler test = new GETHandler(connection);
-          executorService.submit(test);
-           // Thread t = new Thread(test);
-           // t.start();
+          //executorService.submit(test);
+            Thread t = new Thread(test);
+            t.start();
         }
     }
 

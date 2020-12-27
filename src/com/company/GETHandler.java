@@ -73,9 +73,9 @@ public class GETHandler implements Runnable{
         String content_type = "Content-Type: text/html; charset=UTF-8\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
         String header = status + server + content_type + content_length;
-//        dataOutputStream.writeBytes(header);
-//        dataOutputStream.flush();
-//        dataOutputStream.close();
+        dataOutputStream.writeBytes(header);
+        dataOutputStream.flush();
+        dataOutputStream.close();
     }
 
     private void bad_request() throws  IOException {
@@ -84,14 +84,15 @@ public class GETHandler implements Runnable{
         String content_type = "Content-Type: text/html\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
         String header = status + server + content_type + content_length;
-//        dataOutputStream.writeBytes(header);
-//        dataOutputStream.flush();
-//        dataOutputStream.close();
+        dataOutputStream.writeBytes(header);
+        dataOutputStream.flush();
+        dataOutputStream.close();
     }
 
     private void ok(File file, int size) throws  IOException{
-        try{
         OutputStream clientOutput = socket.getOutputStream();
+        try{
+
         String file_path = size + ".html";
         Path filePath = Paths.get(file_path);
         InputStream f = new FileInputStream(file);
@@ -105,9 +106,13 @@ public class GETHandler implements Runnable{
         clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(Files.readAllBytes(filePath));
+        clientOutput.write("null".getBytes(StandardCharsets.UTF_8));
         clientOutput.flush();
+        //clientOutput.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            //clientOutput.close();
         }
         //socket.close();
     }
@@ -115,7 +120,6 @@ public class GETHandler implements Runnable{
     private File createFile(int size) throws IOException {
         File file = new File(Integer.toString(size) + ".html");
         file.createNewFile();
-
         RandomAccessFile raf = new RandomAccessFile(file,"rw");
         raf.setLength(size);
         raf.close();
