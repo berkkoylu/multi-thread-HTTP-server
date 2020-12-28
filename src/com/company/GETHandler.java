@@ -57,8 +57,13 @@ public class GETHandler implements Runnable{
             }else{
                 System.out.println("test3");
                 int size = Integer.parseInt(parameters[1].substring(1, l));
-                File file = createFile(size);
-                ok(file, size);
+                if(size < 100 || size > 20000){
+                    bad_request();
+                }else{
+                    ok(size);
+                }
+                //File file = createFile(size);
+
             }
             System.out.println("inside web server");
             System.out.println(Thread.currentThread().getId());
@@ -89,23 +94,37 @@ public class GETHandler implements Runnable{
         dataOutputStream.close();
     }
 
-    private void ok(File file, int size) throws  IOException{
+    private void ok(int size) throws  IOException{
         OutputStream clientOutput = socket.getOutputStream();
         try{
 
-        String file_path = size + ".html";
-        Path filePath = Paths.get(file_path);
-        InputStream f = new FileInputStream(file);
-        Long file_size = file.length();
+        //String file_path = size + ".html";
+        //Path filePath = Paths.get(file_path);
+        //InputStream f = new FileInputStream(file);
+        //Long file_size = file.length();
+        String body = "";
+        String html_start = "<html>\n" +
+                "<head>\n" +
+                "<title> I am " + size + " bytes long</title>\n" +
+                "</head>\n" +
+                "<body>\n";
+        String html_end = "</body>\n" +
+                "</html>";
         String status = "HTTP/1.1 200 OK\r\n";
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html\r\n";
-        String content_length = "Content-Length: " + file_size +"\r\n\r\n";
+        String content_length = "Content-Length: " + size +"\r\n\r\n";
         clientOutput.write(status.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(server.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(Files.readAllBytes(filePath));
+        clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
+        for(int i = 0; i < size - 80; i++){
+            body += "a";
+        }
+        clientOutput.write(body.getBytes(StandardCharsets.UTF_8));
+        clientOutput.write(html_end.getBytes(StandardCharsets.UTF_8));
+        //clientOutput.write(Files.readAllBytes(filePath));
         clientOutput.flush();
         //clientOutput.close();
         socket.shutdownOutput();

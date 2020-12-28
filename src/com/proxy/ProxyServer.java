@@ -10,12 +10,13 @@ import java.util.concurrent.Executors;
 
 public class ProxyServer{
     private final static int PORT = 8888;
+    private int webServerPort;
     private ServerSocket proxySocket;
     private Socket clientSocket;
     private ExecutorService executorService;
     static HashMap<String, File> cache;
-    public ProxyServer(){
-
+    public ProxyServer(int webServerPort){
+        this.webServerPort = webServerPort;
     }
 
 
@@ -30,7 +31,7 @@ public class ProxyServer{
 
         while (true){
             Socket connection = proxySocket.accept();
-            RequestHandler proxy = new RequestHandler(connection);
+            RequestHandler proxy = new RequestHandler(connection, webServerPort);
          //   executorService.submit(proxy);
             Thread t = new Thread(proxy);
             t.start();

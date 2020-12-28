@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 public class RequestHandler implements Runnable {
     private Socket clientSocket;
+    private int webServerPort;
     private InputStream clientToProxy;
     private OutputStream proxyToClient;
     private DataInputStream in;
@@ -17,10 +18,11 @@ public class RequestHandler implements Runnable {
     InputStreamReader inputStreamReader;
 
 
-    public RequestHandler(Socket clientSocket) throws IOException {
+    public RequestHandler(Socket clientSocket, int webServerPort) throws IOException {
         this.clientSocket = clientSocket;
         this.clientToProxy = clientSocket.getInputStream();
         this.proxyToClient = clientSocket.getOutputStream();
+        this.webServerPort = webServerPort;
         this.in = new DataInputStream(clientSocket.getInputStream());
         //this.out = new DataOutputStream(clientSocket.getOutputStream());
         this.inputStreamReader = new InputStreamReader(clientSocket.getInputStream());
@@ -51,6 +53,10 @@ public class RequestHandler implements Runnable {
             //send request to the web server
             try{
                 size = Integer.parseInt(parameters[1].substring(1));
+                if(size > 9999){
+                    requestTooLong();
+                }
+               // size = Integer.parseInt(parameters[1].substring(15));
             } catch (NumberFormatException e) {
                 e.printStackTrace();
             }
@@ -62,12 +68,19 @@ public class RequestHandler implements Runnable {
             if(ProxyServer.checkCache(filePath)){
                 returnCachedFile(filePath);
             }else{
-                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
+
                 File cachedFile = new File(filePath);
                 cachedFile.createNewFile();
                 FileWriter fileWriter = new FileWriter(cachedFile);
                 PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
-                Socket webServer = new Socket("127.0.0.1",8080);
+                Socket webServer = null;
+                try{
+                     webServer = new Socket("127.0.0.1",webServerPort);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    notFound();
+                }
+                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
                 PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
                 printWriter.println(request);
                 printWriter.flush();
@@ -149,6 +162,52 @@ public class RequestHandler implements Runnable {
             e.printStackTrace();
         }
 
+    }
+
+    private void requestTooLong() throws IOException {
+        OutputStream outToClient = clientSocket.getOutputStream();
+        String status = "HTTP/1.1 414 Request-URI Too Long\r\n";
+        String server = "Server: HTTP Server/1.1\r\n";
+        String content_type = "Content-Type: text/html\r\n";
+        String content_length = "Content-Length: 0\r\n\r\n";
+        try{
+            outToClient.write(status.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(server.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(content_type.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(content_length.getBytes(StandardCharsets.UTF_8));
+            outToClient.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try{
+            in.close();
+            outToClient.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void notFound() throws IOException {
+        OutputStream outToClient = clientSocket.getOutputStream();
+        String status = "HTTP/1.1 404 Not Found\r\n";
+        String server = "Server: HTTP Server/1.1\r\n";
+        String content_type = "Content-Type: text/html\r\n";
+        String content_length = "Content-Length: 0\r\n\r\n";
+        try{
+            outToClient.write(status.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(server.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(content_type.getBytes(StandardCharsets.UTF_8));
+            outToClient.write(content_length.getBytes(StandardCharsets.UTF_8));
+            outToClient.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try{
+            in.close();
+            outToClient.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
