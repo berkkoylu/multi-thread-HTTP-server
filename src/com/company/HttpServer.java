@@ -10,6 +10,7 @@ public class HttpServer{
 
     //private final static int PORT = 8080;
     private ServerSocket serverSocket;
+    private Socket socket;
     private Socket clientSocket;
     private ExecutorService executorService;
     private int port;

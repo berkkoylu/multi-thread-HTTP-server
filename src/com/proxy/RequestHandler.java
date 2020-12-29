@@ -1,7 +1,10 @@
 package com.proxy;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,20 +42,27 @@ public class RequestHandler implements Runnable {
 
     private void processRequest() {
         try{
+
             String response = "";
             // get request from client
             BufferedReader b = new BufferedReader(new InputStreamReader(in));
             String request = b.readLine();
+            String test = analyzeURL(request);
+//            URI uri = new URI(request);
+//            String host = uri.getHost();
+//            String query = uri.getQuery();
+//            request = java.net.URLDecoder.decode(request,"UTF-8");
             if("null".equals(request)){
                 return;
             }
-            System.out.println("request from client" + request);
-            String[] parameters = request.split("\\s+");
-            String methodType = parameters[0];
+            System.out.println("request from client" + test);
+            String[] query = test.split("\\s+");
+            //String[] parameters = query[0].split("/");
+            String methodType = query[0];
             int size = 0;
             //send request to the web server
             try{
-                size = Integer.parseInt(parameters[1].substring(1));
+                size = Integer.parseInt(query[1].substring(1));
                 if(size > 9999){
                     requestTooLong();
                 }
@@ -75,14 +85,14 @@ public class RequestHandler implements Runnable {
                 PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
                 Socket webServer = null;
                 try{
-                     webServer = new Socket("127.0.0.1",webServerPort);
+                     webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
                 } catch (IOException e) {
                     e.printStackTrace();
                     notFound();
                 }
                 PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
                 PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
-                printWriter.println(request);
+                printWriter.println(test);
                 printWriter.flush();
                 //get response from web server
 
@@ -208,6 +218,16 @@ public class RequestHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String analyzeURL(String request) {
+        String decode = "";
+        String[] parameters = request.split("\\s+");
+
+        String[] test = parameters[1].split("/");
+        decode += parameters[0] + " /" + test[3] + " " + parameters[2] + "\n";
+        decode += "Host:" + test[0] + test[2];
+        return decode;
     }
 
 
