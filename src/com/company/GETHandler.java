@@ -3,15 +3,15 @@ package com.company;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.net.InetAddress;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class GETHandler implements Runnable{
-    private static final int BAD_REQUEST= 400;
-    private static final int NOT_IMPLEMENTED = 501;
     InputStreamReader inputStreamReader;
     DataOutputStream dataOutputStream;
     PrintWriter printWriter;
@@ -19,8 +19,6 @@ public class GETHandler implements Runnable{
     Socket socket;
 
     public GETHandler(Socket socket) throws IOException {
-//        String url = InetAddress.getLocalHost().getHostAddress();
-//        this.socket = new Socket(url,8888);
         this.socket = socket;
         this.inputStreamReader = new InputStreamReader(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
@@ -37,16 +35,26 @@ public class GETHandler implements Runnable{
         }
     }
 
-    private void processRequest() throws Exception{
+    private void processRequest() throws IOException{
         try{
             BufferedReader buffered_reader = new BufferedReader(inputStreamReader);
 
-
+            String line = null;
             String request = buffered_reader.readLine();
             System.out.println(request);
+//            for (int i = 0; i < 5; i++) {
+//                String test = buffered_reader.readLine();
+//            }
+            while (!(line = buffered_reader.readLine()).equals("")) {
+                System.out.println(line);
+                printWriter.println(line);
+            }
+//            do {
+//                System.out.println(line);
+//            } while (!(line = buffered_reader.readLine()).equals(""));
+            //System.out.println(request);
             String[] parameters = request.split("\\s+");
             int l = parameters[1].length();
-            //System.out.println(buffered_reader.readLine());
             System.out.println("test0");
             if(!("GET".equals(parameters[0]))){
                 System.out.println("test1");
@@ -62,13 +70,15 @@ public class GETHandler implements Runnable{
                 }else{
                     ok(size);
                 }
-                //File file = createFile(size);
 
             }
             System.out.println("inside web server");
             System.out.println(Thread.currentThread().getId());
             System.out.println("----------");
-        }finally {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
         }
     }
 
@@ -95,13 +105,13 @@ public class GETHandler implements Runnable{
     }
 
     private void ok(int size) throws  IOException{
+        String date = "Date: ";
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        date += getTime();
+        date += "\r\n";
         OutputStream clientOutput = socket.getOutputStream();
         try{
-
-        //String file_path = size + ".html";
-        //Path filePath = Paths.get(file_path);
-        //InputStream f = new FileInputStream(file);
-        //Long file_size = file.length();
         String body = "";
         String html_start = "<html>\n" +
                 "<head>\n" +
@@ -116,6 +126,7 @@ public class GETHandler implements Runnable{
         String content_length = "Content-Length: " + size +"\r\n\r\n";
         clientOutput.write(status.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(server.getBytes(StandardCharsets.UTF_8));
+        clientOutput.write(date.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
@@ -124,39 +135,19 @@ public class GETHandler implements Runnable{
         }
         clientOutput.write(body.getBytes(StandardCharsets.UTF_8));
         clientOutput.write(html_end.getBytes(StandardCharsets.UTF_8));
-        //clientOutput.write(Files.readAllBytes(filePath));
         clientOutput.flush();
-        //clientOutput.close();
         socket.shutdownOutput();
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
-            //clientOutput.close();
         }
-        //socket.close();
     }
 
-    private File createFile(int size) throws IOException {
-        File file = new File(Integer.toString(size) + ".html");
-        file.createNewFile();
-        RandomAccessFile raf = new RandomAccessFile(file,"rw");
-        raf.setLength(size);
-        raf.close();
-        FileWriter fileWriter = new FileWriter(file);
-        PrintWriter printWriter = new PrintWriter(fileWriter);
-        printWriter.println("<html>");
-        printWriter.println("<head>");
-        printWriter.println("<title>I am " + size + " bytes long</title>");
-        printWriter.println("</head>");
-        printWriter.println("<body>");
-        for (int i = 0; i < size - 80; i++) {
-            printWriter.print("a");
-        }
-        printWriter.println("</body>");
-        printWriter.println("</html>");
-
-
-        printWriter.close();
-        return file;
+    private String getTime(){
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return dateFormat.format(calendar.getTime());
     }
+
 }

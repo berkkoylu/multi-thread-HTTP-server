@@ -1,6 +1,5 @@
 package com.proxy;
 
-import com.company.HttpServer;
 
 import java.io.IOException;
 
