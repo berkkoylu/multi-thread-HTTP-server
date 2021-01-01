@@ -45,33 +45,60 @@ public class GETHandler implements Runnable{
 //            for (int i = 0; i < 5; i++) {
 //                String test = buffered_reader.readLine();
 //            }
-            while (!(line = buffered_reader.readLine()).equals("")) {
-                System.out.println(line);
-                printWriter.println(line);
-            }
+//            while (!(line = buffered_reader.readLine()).equals("")) {
+//                System.out.println(line);
+//                printWriter.println(line);
+//            }
 //            do {
 //                System.out.println(line);
 //            } while (!(line = buffered_reader.readLine()).equals(""));
             //System.out.println(request);
             String[] parameters = request.split("\\s+");
-            int l = parameters[1].length();
+
             System.out.println("test0");
-            if(!("GET".equals(parameters[0]))){
-                System.out.println("test1");
-                not_implemented();
-            }else if(!(parameters[1].substring(1, l - 1).matches("[0-9]+"))){
-                System.out.println("test2");
-                bad_request();
-            }else{
-                System.out.println("test3");
-                int size = Integer.parseInt(parameters[1].substring(1, l));
-                if(size < 100 || size > 20000){
-                    bad_request();
+
+            if(("cache".equals(parameters[0]))){
+
+                String request2 = buffered_reader.readLine();
+                String[] parameters2 = request2.split("\\s+");
+                int size2 = Integer.parseInt(parameters2[1].substring(1));
+
+                if((size2 % 2 ) == 0){
+                    if (size2 < 100 || size2 > 20000) {
+                        bad_request();
+                    } else {
+                        ok(size2);
+                    }
                 }else{
-                    ok(size);
+
+                    notModified();
+                }
+
+
+
+            }else {
+                int l = parameters[1].length();
+
+                if (!("GET".equals(parameters[0]))) {
+                    System.out.println("test1");
+                    not_implemented();
+                } else if (!(parameters[1].substring(1, l - 1).matches("[0-9]+"))) {
+                    System.out.println("test2");
+                    bad_request();
+                } else {
+                    System.out.println("test3");
+                    int size = Integer.parseInt(parameters[1].substring(1, l));
+                    if (size < 100 || size > 20000) {
+                        bad_request();
+                    } else {
+                        ok(size);
+                    }
                 }
 
             }
+
+
+
             System.out.println("inside web server");
             System.out.println(Thread.currentThread().getId());
             System.out.println("----------");
@@ -80,6 +107,19 @@ public class GETHandler implements Runnable{
         } catch (NumberFormatException e) {
             e.printStackTrace();
         }
+    }
+
+    private void notModified() throws IOException{
+
+        String status = "HTTP/1.1 304 NOT_MODIFIED\r\n";
+        String server = "Server: HTTP Server/1.1\r\n";
+        String content_type = "Content-Type: text/html; charset=UTF-8\r\n";
+        String content_length = "Content-Length: 0\r\n\r\n";
+        String header = status + server + content_type + content_length;
+        dataOutputStream.writeBytes(header);
+        dataOutputStream.flush();
+        dataOutputStream.close();
+
     }
 
     private void not_implemented() throws IOException {
@@ -112,31 +152,31 @@ public class GETHandler implements Runnable{
         date += "\r\n";
         OutputStream clientOutput = socket.getOutputStream();
         try{
-        String body = "";
-        String html_start = "<html>\n" +
-                "<head>\n" +
-                "<title> I am " + size + " bytes long</title>\n" +
-                "</head>\n" +
-                "<body>\n";
-        String html_end = "</body>\n" +
-                "</html>";
-        String status = "HTTP/1.1 200 OK\r\n";
-        String server = "Server: HTTP Server/1.1\r\n";
-        String content_type = "Content-Type: text/html\r\n";
-        String content_length = "Content-Length: " + size +"\r\n\r\n";
-        clientOutput.write(status.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(server.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(date.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
-        for(int i = 0; i < size - 80; i++){
-            body += "a";
-        }
-        clientOutput.write(body.getBytes(StandardCharsets.UTF_8));
-        clientOutput.write(html_end.getBytes(StandardCharsets.UTF_8));
-        clientOutput.flush();
-        socket.shutdownOutput();
+            String body = "";
+            String html_start = "<html>\n" +
+                    "<head>\n" +
+                    "<title> I am " + size + " bytes long</title>\n" +
+                    "</head>\n" +
+                    "<body>\n";
+            String html_end = "</body>\n" +
+                    "</html>";
+            String status = "HTTP/1.1 200 OK\r\n";
+            String server = "Server: HTTP Server/1.1\r\n";
+            String content_type = "Content-Type: text/html\r\n";
+            String content_length = "Content-Length: " + size +"\r\n\r\n";
+            clientOutput.write(status.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(server.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(date.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
+            for(int i = 0; i < size - 80; i++){
+                body += "a";
+            }
+            clientOutput.write(body.getBytes(StandardCharsets.UTF_8));
+            clientOutput.write(html_end.getBytes(StandardCharsets.UTF_8));
+            clientOutput.flush();
+            socket.shutdownOutput();
         } catch (IOException e) {
             e.printStackTrace();
         }

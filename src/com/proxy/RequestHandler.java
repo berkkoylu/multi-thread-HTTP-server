@@ -39,7 +39,7 @@ public class RequestHandler implements Runnable {
         try {
             processRequest();
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 
@@ -71,9 +71,9 @@ public class RequestHandler implements Runnable {
                 if(size > 9999){
                     requestTooLong();
                 }
-               // size = Integer.parseInt(parameters[1].substring(15));
+                // size = Integer.parseInt(parameters[1].substring(15));
             } catch (NumberFormatException e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
 
             boolean ifModified = checkIfModifiedSinceHeader(test);
@@ -85,15 +85,53 @@ public class RequestHandler implements Runnable {
                 date = getDate(filePath);
                 needToServer = compareDates(date,ifModifiedSinceHeader);
 
-
             }
 
-            //needtoservre --> true
-            //needtoserver --> false
-            // ifModified && !needToServer
+
             if(ProxyServer.checkCache(filePath)){
-                // server'a gidip gelicek
-                returnCachedFile(filePath);
+
+                String conditional = "cache";
+                Socket webServer = null;
+                try{
+                    webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    notFound();
+                }
+                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
+                PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
+                printWriter.println(conditional);
+                printWriter.println(request);
+                printWriter.println(test);
+                printWriter.flush();
+
+                int counter = 0;
+
+
+                File cachedFile= null ;
+                FileWriter fileWriter =null;
+                PrintWriter cachedFileWriter = null;
+                BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
+                while((response = fromServer.readLine()) != null){
+                    if(response.contains("NOT_MODIFIED")){
+                        returnCachedFile(filePath);
+                        break;
+                    }
+
+                    if(counter == 0){
+                        counter = 1;
+                         cachedFile = new File(filePath);
+                        cachedFile.createNewFile();
+                         fileWriter = new FileWriter(cachedFile);
+                         cachedFileWriter = new PrintWriter(fileWriter);
+                    }
+                    System.out.println(response);
+                    cachedFileWriter.println(response);
+                    cachedFileWriter.flush();
+                    toClient.println(response);
+                    toClient.flush();
+                }
+
             }else{
                 File cachedFile = new File(filePath);
                 cachedFile.createNewFile();
@@ -101,7 +139,7 @@ public class RequestHandler implements Runnable {
                 PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
                 Socket webServer = null;
                 try{
-                     webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
+                    webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
                 } catch (IOException e) {
                     e.printStackTrace();
                     notFound();
@@ -149,7 +187,7 @@ public class RequestHandler implements Runnable {
                 webServer.close();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+           e.printStackTrace();
         }
         try{
             in.close();
@@ -227,11 +265,19 @@ public class RequestHandler implements Runnable {
     }
 
     private String analyzeURL(String request) {
-        String decode = "";
-        String[] parameters = request.split("\\s+");
 
-        String[] test = parameters[1].split("/");
-        decode += parameters[0] + " /" + test[3] + " " + parameters[2];
+        String decode = "";
+        try {
+            String[] parameters = request.split("\\s+");
+
+            String[] test = parameters[1].split("/");
+
+
+            decode += parameters[0] + " /" + test[3] + " " + parameters[2];
+        } catch (Exception e) {
+//            e.printStackTrace();
+        }
+
         //decode += "Host:" + test[0] + test[2];
         return decode;
     }
