@@ -50,6 +50,9 @@ public class RequestHandler implements Runnable {
             // get request from client
             BufferedReader b = new BufferedReader(new InputStreamReader(in));
             String request = b.readLine();
+            System.out.println("Accept from client:");
+            System.out.println(request);
+            System.out.println();
             request = analyzeURL(request);
 //            String test = analyzeURL(request);
             String test = test(b);
@@ -60,94 +63,112 @@ public class RequestHandler implements Runnable {
 //            if("null".equals(request)){
 //                return;
 //            }
-            System.out.println("request from client" + test);
+            System.out.println("Send to web server:");
+            System.out.println(request);
+            System.out.println(test);
+
+
+
             String[] query = request.split("\\s+");
             //String[] parameters = query[0].split("/");
             String methodType = query[0];
+            System.out.println("Send to Client:");
+
+
             int size = 0;
+            Socket webServer = null;
+            try{
+                webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
+            } catch (IOException e) {
+                // e.printStackTrace();
+                notFound();
+            }
             //send request to the web server
             try{
-                size = Integer.parseInt(query[1].substring(1));
+
+                if(!(query[1].substring(1).matches("[0-9]+"))){
+                    size=0;
+                }else{
+                    size = Integer.parseInt(query[1].substring(1));
+                }
+
+
+
                 if(size > 9999){
                     requestTooLong();
-                }
-                // size = Integer.parseInt(parameters[1].substring(15));
-            } catch (NumberFormatException e) {
-//                e.printStackTrace();
-            }
+                }else{
+                    boolean ifModified = checkIfModifiedSinceHeader(test);
+                    String filePath = size + "c" + ".html";
+                    String date = "";
+                    boolean needToServer = false;
+                    if(ifModified){
+                        System.out.println(ifModifiedSinceHeader);
+                        date = getDate(filePath);
+                        needToServer = compareDates(date,ifModifiedSinceHeader);
 
-            boolean ifModified = checkIfModifiedSinceHeader(test);
-            String filePath = size + "c" + ".html";
-            String date = "";
-            boolean needToServer = false;
-            if(ifModified){
-                System.out.println(ifModifiedSinceHeader);
-                date = getDate(filePath);
-                needToServer = compareDates(date,ifModifiedSinceHeader);
-
-            }
-
-
-            if(ProxyServer.checkCache(filePath)){
-
-                String conditional = "cache";
-                Socket webServer = null;
-                try{
-                    webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    notFound();
-                }
-                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
-                PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
-                printWriter.println(conditional);
-                printWriter.println(request);
-                printWriter.println(test);
-                printWriter.flush();
-
-                int counter = 0;
-
-
-                File cachedFile= null ;
-                FileWriter fileWriter =null;
-                PrintWriter cachedFileWriter = null;
-                BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
-                while((response = fromServer.readLine()) != null){
-                    if(response.contains("NOT_MODIFIED")){
-                        returnCachedFile(filePath);
-                        break;
                     }
 
-                    if(counter == 0){
-                        counter = 1;
-                         cachedFile = new File(filePath);
+                    if(ProxyServer.checkCache(filePath)){
+
+                        String conditional = "cache";
+//                        Socket webServer = null;
+//                        try{
+//                            webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
+//                        } catch (IOException e) {
+//                            //e.printStackTrace();
+//                            notFound();
+//                        }
+                        PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
+                        PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
+                        printWriter.println(conditional);
+                        printWriter.println(request);
+                        printWriter.println(test);
+                        printWriter.flush();
+
+                        int counter = 0;
+
+
+                        File cachedFile= null ;
+                        FileWriter fileWriter =null;
+                        PrintWriter cachedFileWriter = null;
+                        BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
+                        while((response = fromServer.readLine()) != null){
+                            if(response.contains("NOT_MODIFIED")){
+                                returnCachedFile(filePath);
+                                break;
+                            }
+
+                            if(counter == 0){
+                                counter = 1;
+                                cachedFile = new File(filePath);
+                                cachedFile.createNewFile();
+                                fileWriter = new FileWriter(cachedFile);
+                                cachedFileWriter = new PrintWriter(fileWriter);
+                            }
+                            System.out.println(response);
+                            cachedFileWriter.println(response);
+                            cachedFileWriter.flush();
+                            toClient.println(response);
+                            toClient.flush();
+                        }
+                       // System.out.println("-----------------------------------");
+
+                    }else{
+                        File cachedFile = new File(filePath);
                         cachedFile.createNewFile();
-                         fileWriter = new FileWriter(cachedFile);
-                         cachedFileWriter = new PrintWriter(fileWriter);
-                    }
-                    System.out.println(response);
-                    cachedFileWriter.println(response);
-                    cachedFileWriter.flush();
-                    toClient.println(response);
-                    toClient.flush();
-                }
-
-            }else{
-                File cachedFile = new File(filePath);
-                cachedFile.createNewFile();
-                FileWriter fileWriter = new FileWriter(cachedFile);
-                PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
-                Socket webServer = null;
-                try{
-                    webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    notFound();
-                }
-                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
-                PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
-                printWriter.println(request);
-                printWriter.println(test);
+                        FileWriter fileWriter = new FileWriter(cachedFile);
+                        PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
+//                        Socket webServer = null;
+//                        try{
+//                            webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
+//                        } catch (IOException e) {
+//                            // e.printStackTrace();
+//                            notFound();
+//                        }
+                        PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
+                        PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
+                        printWriter.println(request);
+                        printWriter.println(test);
 //                printWriter.flush();
 //                while (!(line = b.readLine()).equals("")) {
 //                    System.out.println(line);
@@ -158,43 +179,83 @@ public class RequestHandler implements Runnable {
 //
 //                    printWriter.flush();
 //                } while (!(line = b.readLine()).equals(""));
-                printWriter.flush();
-                //get response from web server
+                        printWriter.flush();
+                        //get response from web server
 
-                BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
-                while((response = fromServer.readLine()) != null){
-                    System.out.println(response);
-                    cachedFileWriter.println(response);
-                    cachedFileWriter.flush();
-                    toClient.println(response);
-                    toClient.flush();
-                }
+                        BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
+                        while((response = fromServer.readLine()) != null){
+                            System.out.println(response);
+                            cachedFileWriter.println(response);
+                            cachedFileWriter.flush();
+                            toClient.println(response);
+                            toClient.flush();
+                        }
 
 
-                if(fromServer != null){
-                    fromServer.close();
-                }
-                if(cachedFileWriter != null){
-                    cachedFileWriter.close();
-                }
-                if(toClient != null){
-                    toClient.close();
+                        if(fromServer != null){
+                            fromServer.close();
+                        }
+                        if(cachedFileWriter != null){
+                            cachedFileWriter.close();
+                        }
+                        if(toClient != null){
+                            toClient.close();
+                        }
+
+                        if(!("0c.html".equals(filePath)) && ("GET".equals(methodType))){
+                            ProxyServer.addCache(filePath,cachedFile);
+                        }
+                        webServer.close();
+                    }
+
+
+
                 }
 
-                if(!("0c.html".equals(filePath)) && ("GET".equals(methodType))){
-                    ProxyServer.addCache(filePath,cachedFile);
-                }
-                webServer.close();
+                System.out.println();
+                System.out.println("-------------------------------");
+                System.out.println();
+                // size = Integer.parseInt(parameters[1].substring(15));
+            } catch (NumberFormatException e) {
+//                e.printStackTrace();
             }
+
+
+
         } catch (Exception e) {
-           e.printStackTrace();
+           //e.printStackTrace();
         }
         try{
             in.close();
         } catch (IOException e) {
-            e.printStackTrace();
+          //  e.printStackTrace();
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     private void returnCachedFile(String name) throws IOException {
         System.out.println("returned from cache");
@@ -206,14 +267,14 @@ public class RequestHandler implements Runnable {
             outToClient.flush();
 
         } catch (Exception e) {
-            e.printStackTrace();
+           // e.printStackTrace();
         }
         try {
             in.close();
             outToClient.close();
 
         } catch (Exception e) {
-            e.printStackTrace();
+           // e.printStackTrace();
         }
 
     }
@@ -224,6 +285,8 @@ public class RequestHandler implements Runnable {
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
+
+        System.out.println(status + server + content_type + content_length);
         try{
             outToClient.write(status.getBytes(StandardCharsets.UTF_8));
             outToClient.write(server.getBytes(StandardCharsets.UTF_8));
@@ -231,13 +294,13 @@ public class RequestHandler implements Runnable {
             outToClient.write(content_length.getBytes(StandardCharsets.UTF_8));
             outToClient.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+           // e.printStackTrace();
         }
         try{
             in.close();
             outToClient.close();
         } catch (IOException e) {
-            e.printStackTrace();
+           // e.printStackTrace();
         }
     }
 
@@ -247,6 +310,11 @@ public class RequestHandler implements Runnable {
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
+
+        System.out.println(status + server + content_type + content_length);
+        System.out.println("-------------------------------");
+
+
         try{
             outToClient.write(status.getBytes(StandardCharsets.UTF_8));
             outToClient.write(server.getBytes(StandardCharsets.UTF_8));
@@ -260,7 +328,7 @@ public class RequestHandler implements Runnable {
             in.close();
             outToClient.close();
         } catch (IOException e) {
-            e.printStackTrace();
+          //  e.printStackTrace();
         }
     }
 
@@ -313,7 +381,7 @@ public class RequestHandler implements Runnable {
                 }
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+           // e.printStackTrace();
         }
         return date;
     }

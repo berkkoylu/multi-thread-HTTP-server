@@ -9,7 +9,7 @@ public class ProxyMain {
         if(args.length != 1){
             System.out.println("Usage: Server.Class {port-number}");
         }
-        System.out.println(args[0]);
+      //  System.out.println(args[0]);
         ProxyServer server = new ProxyServer(Integer.parseInt(args[0]));
         server.startServer();
 

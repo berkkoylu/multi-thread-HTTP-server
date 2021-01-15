@@ -31,7 +31,7 @@ public class GETHandler implements Runnable{
         try{
             processRequest();
         }catch (Exception e){
-            System.out.println(e);
+           // System.out.println(e);
         }
     }
 
@@ -41,13 +41,18 @@ public class GETHandler implements Runnable{
 
             String line = null;
             String request = buffered_reader.readLine();
+
+            System.out.println("Accept from Client");
             System.out.println(request);
+            //System.out.println("--------------------------------");
+
+
+
 //            for (int i = 0; i < 5; i++) {
 //                String test = buffered_reader.readLine();
 //            }
 //            while (!(line = buffered_reader.readLine()).equals("")) {
 //                System.out.println(line);
-//                printWriter.println(line);
 //            }
 //            do {
 //                System.out.println(line);
@@ -55,7 +60,6 @@ public class GETHandler implements Runnable{
             //System.out.println(request);
             String[] parameters = request.split("\\s+");
 
-            System.out.println("test0");
 
             if(("cache".equals(parameters[0]))){
 
@@ -80,13 +84,11 @@ public class GETHandler implements Runnable{
                 int l = parameters[1].length();
 
                 if (!("GET".equals(parameters[0]))) {
-                    System.out.println("test1");
                     not_implemented();
                 } else if (!(parameters[1].substring(1, l - 1).matches("[0-9]+"))) {
-                    System.out.println("test2");
                     bad_request();
                 } else {
-                    System.out.println("test3");
+
                     int size = Integer.parseInt(parameters[1].substring(1, l));
                     if (size < 100 || size > 20000) {
                         bad_request();
@@ -99,9 +101,7 @@ public class GETHandler implements Runnable{
 
 
 
-            System.out.println("inside web server");
-            System.out.println(Thread.currentThread().getId());
-            System.out.println("----------");
+            //System.out.println("--------------------");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NumberFormatException e) {
@@ -115,6 +115,12 @@ public class GETHandler implements Runnable{
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html; charset=UTF-8\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
+
+        System.out.println();
+        System.out.println("Send to Client");
+        System.out.println(status + server + content_type + content_length);
+        System.out.println("------------------------------------");
+
         String header = status + server + content_type + content_length;
         dataOutputStream.writeBytes(header);
         dataOutputStream.flush();
@@ -127,6 +133,10 @@ public class GETHandler implements Runnable{
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html; charset=UTF-8\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
+        System.out.println();
+        System.out.println("Send to Client");
+        System.out.println(status + server + content_type + content_length);
+        System.out.println("------------------------------------");
         String header = status + server + content_type + content_length;
         dataOutputStream.writeBytes(header);
         dataOutputStream.flush();
@@ -138,6 +148,11 @@ public class GETHandler implements Runnable{
         String server = "Server: HTTP Server/1.1\r\n";
         String content_type = "Content-Type: text/html\r\n";
         String content_length = "Content-Length: 0\r\n\r\n";
+
+        System.out.println();
+        System.out.println("Send to Client");
+        System.out.println(status + server + content_type + content_length);
+        System.out.println("------------------------------------");
         String header = status + server + content_type + content_length;
         dataOutputStream.writeBytes(header);
         dataOutputStream.flush();
@@ -164,19 +179,29 @@ public class GETHandler implements Runnable{
             String server = "Server: HTTP Server/1.1\r\n";
             String content_type = "Content-Type: text/html\r\n";
             String content_length = "Content-Length: " + size +"\r\n\r\n";
+
+            System.out.println();
+            System.out.println("Send to Client");
+            System.out.println(status + server + content_type + content_length);
             clientOutput.write(status.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(server.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(date.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(content_type.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
+            System.out.println(html_start);
             for(int i = 0; i < size - 80; i++){
                 body += "a";
             }
+
             clientOutput.write(body.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(html_end.getBytes(StandardCharsets.UTF_8));
             clientOutput.flush();
             socket.shutdownOutput();
+            System.out.println(body);
+            System.out.println(html_end);
+            System.out.println("------------------------------------");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
