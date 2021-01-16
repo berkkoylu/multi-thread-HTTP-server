@@ -38,35 +38,20 @@ public class GETHandler implements Runnable{
     private void processRequest() throws IOException{
         try{
             BufferedReader buffered_reader = new BufferedReader(inputStreamReader);
-
-            String line = null;
+            //we read request from client
             String request = buffered_reader.readLine();
 
             System.out.println("Accept from Client");
             System.out.println(request);
-            //System.out.println("--------------------------------");
-
-
-
-//            for (int i = 0; i < 5; i++) {
-//                String test = buffered_reader.readLine();
-//            }
-//            while (!(line = buffered_reader.readLine()).equals("")) {
-//                System.out.println(line);
-//            }
-//            do {
-//                System.out.println(line);
-//            } while (!(line = buffered_reader.readLine()).equals(""));
-            //System.out.println(request);
             String[] parameters = request.split("\\s+");
 
-
+            //if it contains cache it means it asks if file is modified
             if(("cache".equals(parameters[0]))){
 
                 String request2 = buffered_reader.readLine();
                 String[] parameters2 = request2.split("\\s+");
                 int size2 = Integer.parseInt(parameters2[1].substring(1));
-
+                //if size is even file is modified and send again
                 if((size2 % 2 ) == 0){
                     if (size2 < 100 || size2 > 20000) {
                         bad_request();
@@ -74,13 +59,14 @@ public class GETHandler implements Runnable{
                         ok(size2);
                     }
                 }else{
-
+                    //if size is odd not modified is sent
                     notModified();
                 }
 
 
 
             }else {
+                //if it is not conditional get request we check if it is a valid request or not and send response regarding of content of request
                 int l = parameters[1].length();
 
                 if (!("GET".equals(parameters[0]))) {
@@ -108,7 +94,7 @@ public class GETHandler implements Runnable{
             e.printStackTrace();
         }
     }
-
+    //send not modified if file length is odd
     private void notModified() throws IOException{
 
         String status = "HTTP/1.1 304 NOT_MODIFIED\r\n";
@@ -127,7 +113,7 @@ public class GETHandler implements Runnable{
         dataOutputStream.close();
 
     }
-
+    //if request method is not GET, we send not implemented
     private void not_implemented() throws IOException {
         String status = "HTTP/1.1 501 NOT_IMPLEMENTED\r\n";
         String server = "Server: HTTP Server/1.1\r\n";
@@ -142,7 +128,7 @@ public class GETHandler implements Runnable{
         dataOutputStream.flush();
         dataOutputStream.close();
     }
-
+    //if request contains non-digit character we send bad request
     private void bad_request() throws  IOException {
         String status = "HTTP/1.1 400 BAD_REQUEST\r\n";
         String server = "Server: HTTP Server/1.1\r\n";
@@ -158,7 +144,7 @@ public class GETHandler implements Runnable{
         dataOutputStream.flush();
         dataOutputStream.close();
     }
-
+    //if request is valid we send ok request
     private void ok(int size) throws  IOException{
         String date = "Date: ";
         SimpleDateFormat dateFormat = new SimpleDateFormat(
@@ -190,6 +176,7 @@ public class GETHandler implements Runnable{
             clientOutput.write(content_length.getBytes(StandardCharsets.UTF_8));
             clientOutput.write(html_start.getBytes(StandardCharsets.UTF_8));
             System.out.println(html_start);
+            //we increase the size of body until it reaches given size
             for(int i = 0; i < size - 80; i++){
                 body += "a";
             }
@@ -206,7 +193,7 @@ public class GETHandler implements Runnable{
             e.printStackTrace();
         }
     }
-
+    //getting time for adding it html files
     private String getTime(){
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat(

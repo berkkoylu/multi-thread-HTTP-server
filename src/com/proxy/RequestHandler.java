@@ -7,11 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Scanner;
 
 public class RequestHandler implements Runnable {
     private String ifModifiedSinceHeader;
@@ -49,23 +44,18 @@ public class RequestHandler implements Runnable {
             String response = "";
             // get request from client
             BufferedReader b = new BufferedReader(new InputStreamReader(in));
+            //read first line of request
             String request = b.readLine();
             System.out.println("Accept from client:");
             System.out.println(request);
             System.out.println();
             request = analyzeURL(request);
-//            String test = analyzeURL(request);
-            String test = test(b);
-//            URI uri = new URI(request);
-//            String host = uri.getHost();
-//            String query = uri.getQuery();
-//            request = java.net.URLDecoder.decode(request,"UTF-8");
-//            if("null".equals(request)){
-//                return;
-//            }
+
+            // reading remaining part of request
+            String remaningHeaders = gettingRemainingPart(b);
             System.out.println("Send to web server:");
             System.out.println(request);
-            System.out.println(test);
+            System.out.println(remaningHeaders);
 
 
 
@@ -74,7 +64,7 @@ public class RequestHandler implements Runnable {
             String methodType = query[0];
             System.out.println("Send to Client:");
 
-
+            //check if server is open, send not found otherwise
             int size = 0;
             Socket webServer = null;
             try{
@@ -93,36 +83,21 @@ public class RequestHandler implements Runnable {
                 }
 
 
-
+                //check the size of request
                 if(size > 9999){
                     requestTooLong();
                 }else{
-                    boolean ifModified = checkIfModifiedSinceHeader(test);
                     String filePath = size + "c" + ".html";
-                    String date = "";
-                    boolean needToServer = false;
-                    if(ifModified){
-                        System.out.println(ifModifiedSinceHeader);
-                        date = getDate(filePath);
-                        needToServer = compareDates(date,ifModifiedSinceHeader);
 
-                    }
-
+                    //if cache contains file, we add a new header and send request to server
                     if(ProxyServer.checkCache(filePath)){
-
+                        //this header is indicates conditional get header
                         String conditional = "cache";
-//                        Socket webServer = null;
-//                        try{
-//                            webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
-//                        } catch (IOException e) {
-//                            //e.printStackTrace();
-//                            notFound();
-//                        }
                         PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
                         PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
                         printWriter.println(conditional);
                         printWriter.println(request);
-                        printWriter.println(test);
+                        printWriter.println(remaningHeaders);
                         printWriter.flush();
 
                         int counter = 0;
@@ -133,11 +108,12 @@ public class RequestHandler implements Runnable {
                         PrintWriter cachedFileWriter = null;
                         BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
                         while((response = fromServer.readLine()) != null){
+                            // we return from cache if file is not modified
                             if(response.contains("NOT_MODIFIED")){
                                 returnCachedFile(filePath);
                                 break;
                             }
-
+                            //if response doesn't contain not modified header, we create new file
                             if(counter == 0){
                                 counter = 1;
                                 cachedFile = new File(filePath);
@@ -145,6 +121,7 @@ public class RequestHandler implements Runnable {
                                 fileWriter = new FileWriter(cachedFile);
                                 cachedFileWriter = new PrintWriter(fileWriter);
                             }
+                            //we write response to file and client
                             System.out.println(response);
                             cachedFileWriter.println(response);
                             cachedFileWriter.flush();
@@ -152,36 +129,18 @@ public class RequestHandler implements Runnable {
                             toClient.flush();
                         }
                        // System.out.println("-----------------------------------");
-
+                    //if file is not in the cache, new file is created and request is sent to server
                     }else{
                         File cachedFile = new File(filePath);
                         cachedFile.createNewFile();
                         FileWriter fileWriter = new FileWriter(cachedFile);
                         PrintWriter cachedFileWriter = new PrintWriter(fileWriter);
-//                        Socket webServer = null;
-//                        try{
-//                            webServer = new Socket(InetAddress.getLocalHost().getHostName(),webServerPort);
-//                        } catch (IOException e) {
-//                            // e.printStackTrace();
-//                            notFound();
-//                        }
                         PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream());
                         PrintWriter printWriter = new PrintWriter(webServer.getOutputStream());
                         printWriter.println(request);
-                        printWriter.println(test);
-//                printWriter.flush();
-//                while (!(line = b.readLine()).equals("")) {
-//                    System.out.println(line);
-//                    printWriter.println(line);
-//                }
-//                }
-//                do {
-//
-//                    printWriter.flush();
-//                } while (!(line = b.readLine()).equals(""));
+                        printWriter.println(remaningHeaders);
                         printWriter.flush();
-                        //get response from web server
-
+                        //get response from web server and writing response to client and file together
                         BufferedReader fromServer = new BufferedReader(new InputStreamReader(webServer.getInputStream()));
                         while((response = fromServer.readLine()) != null){
                             System.out.println(response);
@@ -201,7 +160,7 @@ public class RequestHandler implements Runnable {
                         if(toClient != null){
                             toClient.close();
                         }
-
+                        //we add file to cache if it is a GET request and contains only digit
                         if(!("0c.html".equals(filePath)) && ("GET".equals(methodType))){
                             ProxyServer.addCache(filePath,cachedFile);
                         }
@@ -256,7 +215,7 @@ public class RequestHandler implements Runnable {
 
 
 
-
+    //send file from cache when it is in cache and not modified
     private void returnCachedFile(String name) throws IOException {
         System.out.println("returned from cache");
         File cachedFile = ProxyServer.getCachedFile(name);
@@ -278,7 +237,7 @@ public class RequestHandler implements Runnable {
         }
 
     }
-
+    //send request too long error when size is higher than 9999
     private void requestTooLong() throws IOException {
         OutputStream outToClient = clientSocket.getOutputStream();
         String status = "HTTP/1.1 414 Request-URI Too Long\r\n";
@@ -303,7 +262,7 @@ public class RequestHandler implements Runnable {
            // e.printStackTrace();
         }
     }
-
+    // send not found error when web server is not found
     private void notFound() throws IOException {
         OutputStream outToClient = clientSocket.getOutputStream();
         String status = "HTTP/1.1 404 Not Found\r\n";
@@ -331,7 +290,7 @@ public class RequestHandler implements Runnable {
           //  e.printStackTrace();
         }
     }
-
+    //converting first line of the request that web server can handle
     private String analyzeURL(String request) {
 
         String decode = "";
@@ -346,17 +305,13 @@ public class RequestHandler implements Runnable {
 //            e.printStackTrace();
         }
 
-        //decode += "Host:" + test[0] + test[2];
         return decode;
     }
-
-    private String test(BufferedReader b) throws IOException {
+    //reading other fields of request and saving in a string
+    private String gettingRemainingPart(BufferedReader b) throws IOException {
         String decode = "";
         String line = "";
         while(!(line = b.readLine()).equals("")){
-            if(line.contains("If-Modified-Since:")){
-                ifModifiedSinceHeader = line.substring(18);
-            }
             decode += line;
             decode += "\n";
         }
@@ -364,39 +319,7 @@ public class RequestHandler implements Runnable {
         return decode;
     }
 
-    private boolean checkIfModifiedSinceHeader(String request){
-        return request.contains("If-Modified-Since:");
-    }
 
-    private String getDate(String filePath){
-        String date = "";
-        File file = new File(filePath);
-        Scanner in = null;
-        try{
-            in = new Scanner(file);
-            while(in.hasNext()){
-                String line = in.nextLine();
-                if(line.contains("Date:")){
-                    return line.substring(6);
-                }
-            }
-        } catch (FileNotFoundException e) {
-           // e.printStackTrace();
-        }
-        return date;
-    }
-
-    private boolean compareDates(String file, String request) throws ParseException {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(
-                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        Date date1 = dateFormat.parse(file);
-        Date date2 = dateFormat.parse(file);
-        if(date2.compareTo(date1) <= 0){
-            return true;
-        }else{
-            return false;
-        }
-    }
 
 
 }

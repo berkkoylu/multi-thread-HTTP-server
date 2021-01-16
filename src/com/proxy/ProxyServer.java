@@ -15,7 +15,7 @@ public class ProxyServer{
         this.webServerPort = webServerPort;
     }
 
-
+    //we create proxy server and initialize cache
     public void startServer() throws IOException{
         try {
             proxySocket = new ServerSocket(PORT);
@@ -23,7 +23,7 @@ public class ProxyServer{
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        //while server is running it create a new thread for each connection
         while (true){
             Socket connection = proxySocket.accept();
             RequestHandler proxy = new RequestHandler(connection, webServerPort);
@@ -32,15 +32,15 @@ public class ProxyServer{
 
         }
     }
-
+    //adding file to cache
     public static void addCache(String name, File file){
         cache.put(name,file);
     }
-
+    //check if cache contains file
     public static boolean checkCache(String name){
         return cache.containsKey(name);
     }
-
+    //return file from cache
     public static File getCachedFile(String name){
         return cache.get(name);
     }
